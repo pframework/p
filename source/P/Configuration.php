@@ -38,7 +38,7 @@ class Configuration implements \ArrayAccess
 
     public function offsetExists($offset)
     {
-        return isset($data[$offset]);
+        return isset($this->data[$offset]);
     }
 
     public function offsetGet($offset)

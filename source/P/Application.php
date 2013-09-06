@@ -73,12 +73,23 @@ class Application implements \ArrayAccess
             $sl->set('CliSource', $routerSource);
         }
 
-        // base problem handler, it is replacable
-        // $sl->set('ProblemHandler', array($this, 'problemHandlerCallback'), true);
-
         $sl->set('Application', $this);
         $sl->set('ApplicationState', $this->applicationState);
         $sl->set('ServiceLocator', $sl);
+        
+        // config file application configuration
+        $configuration = $sl->get('Configuration');
+        if (isset($configuration['application']) && is_array($configuration['application'])) {
+            foreach ($configuration['application'] as $n => $v) {
+                $m = null;
+                switch ($n) {
+                    case 'routes': foreach ($v as $a => $b) $this->addRoute($a, $b); break;
+                    case 'services': foreach ($v as $a => $b) $this->addService($a, $b); break;
+                    case 'features': foreach ($v as $a => $b) $this->addFeature($b); break;
+                    default: continue;
+                }
+            }
+        }
     }
 
     /**
@@ -103,6 +114,11 @@ class Application implements \ArrayAccess
     {
         $this->initialize();
 
+        // default error handling
+        if (!isset($this->callbacks['Application.Error'])) {
+            $this->addFeature(new Feature\BasicErrorHandler);
+        }
+
         /** @var $router Router */
         $router = $this->serviceLocator->get('Router');
 
@@ -112,7 +128,7 @@ class Application implements \ArrayAccess
             $routeMatch = $router->route();
             $this->serviceLocator->set('RouteMatch', $routeMatch, true);
         } catch (\Exception $e) {
-            return $this->handleProblem(self::ERROR_UNROUTABLE, $e);
+            return $this->trigger('Application.Error', array('type' => self::ERROR_EXCEPTION, 'exception' => $e));
         }
 
         $this->trigger('Application.PostRoute');
@@ -123,7 +139,7 @@ class Application implements \ArrayAccess
             $routeMatch = $router->getLastRouteMatch();
 
             if (!$routeMatch) {
-                return $this->handleProblem(self::ERROR_UNROUTABLE);
+                return $this->trigger('Application.Error', array('type' => self::ERROR_UNROUTABLE));
             }
 
         } elseif (!$routeMatch instanceof Router\RouteMatch) {
@@ -149,7 +165,7 @@ class Application implements \ArrayAccess
             $result = invoke($route->getDispatchable(), $this->applicationState);
             $this->applicationState->setResult($result);
         } catch (\Exception $e) {
-            $this->handleProblem(self::ERROR_UNDISPATCHABLE, $e);
+            return $this->trigger('Application.Error', array('type' => self::ERROR_UNDISPATCHABLE));
         }
 
         $this->trigger('Application.PostDispatch');
@@ -183,20 +199,23 @@ class Application implements \ArrayAccess
         return $this;
     }
 
-    public function register(Feature\AbstractFeature $feature)
+    public function addFeature($feature)
     {
+        if (is_string($feature)) {
+            $feature = instantiate($feature, $this->applicationState);
+        }
+        if (!$feature instanceof Feature\AbstractFeature) {
+            throw new \InvalidArgumentException('Provided feature is not a valid feature');
+        }
         $feature->register($this);
         return $this;
     }
 
     public function addRoute($nameOrRouteSpec /*, $routeSpec */)
     {
-        $args = func_get_args();
-        $arg1 = (is_array($nameOrRouteSpec)) ? null : $args[0];
-        if (isset($args[1])) {
-            $arg2 = $args[1];
-        }
-        $this->serviceLocator->get('Router')->getRouteStack()->offsetSet($arg1, $arg2);
+        $funcArgs = func_get_args();
+        $args = (is_array($nameOrRouteSpec)) ? array(null, $funcArgs[0]) : array($funcArgs[0], $funcArgs[1]);
+        $this->serviceLocator->get('Router')->getRouteStack()->offsetSet($args[0], $args[1]);
         return $this;
     }
     
@@ -259,6 +278,9 @@ class Application implements \ArrayAccess
      */
     public function handleProblem(/* any args */)
     {
+        if ($problemHandler = $this->serviceLocator->get('ProblemHandler')) {
+            return call_user_func_array($problemHandler, func_get_args());
+        }
         var_dump(func_get_args());
         exit;
     }

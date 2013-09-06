@@ -40,7 +40,7 @@ handful of concepts and features:
 * Simple built-in router for both HTTP and CLI request handling
 * Configuration file management and processing
 * Basic PHP/HTML, CLI, and REST output handling
-* Application lifecycle scoped callback registration
+* Application lifecycle callback registration
 
 Installation
 ------------
@@ -51,7 +51,10 @@ Installation
 
 2) Create a composer.json and install:
 
-    "p/p"
+    "require": {
+        "pframework/p": "dev-master"
+    }
+
 
 Hello World
 -----------
@@ -66,8 +69,10 @@ The painfully simple and useless hello world:
 Base Services
 -------------
 
+Todo.
+
 Base Lifecycle Scopes
 ---------------------
 
-
+Todo.
 

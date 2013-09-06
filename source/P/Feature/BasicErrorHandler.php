@@ -13,17 +13,24 @@ use P\Application;
 
 class BasicErrorHandler extends AbstractFeature
 {
-    public function getHooks()
+    public function getServices()
+    {
+        return ['ErrorHandler' => $this];
+    }
+    
+    public function getCallbacks()
     {
         return array(
             array('Application.Error', array($this, 'handle'))
         );
     }
 
-    public function handle($type, \Exception $exception = null)
+    public function handle($ApplicationState)
     {
-        switch ($type) {
-            case Application::ERROR_NOT_DISPATCHABLE:
+        $params = $ApplicationState->getScopeParameters();
+        switch ($params['type']) {
+            case Application::ERROR_UNROUTABLE:
+            case Application::ERROR_UNDISPATCHABLE:
                 if (php_sapi_name() != 'cli') {
                     header('HTTP/1.0 404 Not Found');
                     echo 'Not Found.' . PHP_EOL;

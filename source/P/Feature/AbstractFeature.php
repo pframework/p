@@ -33,7 +33,6 @@ abstract class AbstractFeature
         return array();
     }
 
-
     public function register(Application $application)
     {
         $serviceLocator = $application->getServiceLocator();
@@ -57,13 +56,6 @@ abstract class AbstractFeature
         foreach ($this->getCallbacks() as $callback) {
             $application->on($callback[0], $callback[1], (isset($callback[2]) ? $callback[2] : 0));
         }
-        
-        
-
-
-
-
-
     }
 
 }

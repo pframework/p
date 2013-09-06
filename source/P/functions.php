@@ -3,7 +3,7 @@
 namespace P;
 
 /**
- * get_callable() is used to ensure a specification is a PHP callable.
+ * get_callable() is used to retrieve a PHP callable from a specification.
  * 
  * P framework allows callables to be anything that passes is_callable()
  * or anything in the form "Class->method"
@@ -22,12 +22,24 @@ function get_callable($specification, $parameters = array()) {
 }
 
 /**
- * is_instantiable() - is it in the form of Class->method?
+ * is_callableish() - is it callable or form of Class->method?
  * @param callable|string $specification
  * @return bool
  */
-function is_instantiable($specification) {
+function is_callish($specification) {
+    if (is_callable($specification)) {
+        return true;
+    }
     return (bool) strpos($specification, '->');
+}
+
+function is_instantiable($specification, &$class = null, &$method = null) {
+    if (strpos($specification, '->')) {
+        list($class, $method) = preg_split('#->#', $specification, 2);        
+    } else {
+        $class = $specification;
+    }
+    return class_exists($class, true);
 }
 
 /**
@@ -40,31 +52,31 @@ function is_instantiable($specification) {
  * @return \callable
  */
 function instantiate($instantiator, $parameters = array()) {
-    if (!is_instantiable($instantiator)) {
-        throw new \InvalidArgumentException('Provided instantiator does not look like a valid instantiator');
-    }
-    
-    $matches = null;
-    
+    // do replacements on class and method
     if (strpos($instantiator, '{') !== false) {
         $instantiator = get_instantiator_with_replacements($instantiator, $parameters);
     }
 
-    list($c, $m) = preg_split('#->#', $instantiator, 2);
+    $c = $m = null;
+    if (!is_instantiable($instantiator, $c, $m)) {
+        throw new \InvalidArgumentException('Provided instantiator does not look like a valid instantiator');
+    }
 
     $a = get_matched_arguments(array($c, '__construct'), $parameters);
 
     // switch to avoid Reflection in most common use cases
     switch (count($a)) {
-        case 0: return array(new $c(), $m);
-        case 1: return array(new $c($a[0]), $m);
-        case 2: return array(new $c($a[0], $a[1]), $m);
-        case 3: return array(new $c($a[0], $a[1], $a[2]), $m);
-        case 4: return array(new $c($a[0], $a[1], $a[2], $a[3]), $m);
+        case 0: $o = new $c();
+        case 1: $o = new $c($a[0]);
+        case 2: $o = new $c($a[0], $a[1]);
+        case 3: $o = new $c($a[0], $a[1], $a[2]);
+        case 4: $o = new $c($a[0], $a[1], $a[2], $a[3]);
         default:
             $r = new \ReflectionClass($c);
-            return array($r->newInstanceArgs($a), $m);
+            $o = $r->newInstanceArgs($a);
     }
+    
+    return ($m) ? array($o, $m) : $o;
 }
 
 /**

@@ -52,6 +52,11 @@ class ApplicationState implements \ArrayAccess
         return (isset($this->scopes[0])) ? $this->scopes[0] : null;
     }
 
+    public function getScopeParameters()
+    {
+        return $this->scopeParameters[0];
+    }
+
     public function getScopes()
     {
         return $this->scopes;
