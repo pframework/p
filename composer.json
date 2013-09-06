@@ -1,5 +1,14 @@
 {
     "name": "pframework/p",
+    "description": "A Small Application Framework",
+    "license": "UNLICENSE",
+    "authors": [
+        {
+            "name": "Ralph Schindler",
+            "email": "ralph@ralphschindler.com",
+            "role": "developer"
+        }
+    ],
     "autoload": {
         "psr-0": {"P\\": "source/"},
         "files": ["source/P/functions.php"]
