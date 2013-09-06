@@ -1,0 +1,7 @@
+{
+    "name": "pframework/p",
+    "autoload": {
+        "psr-0": {"P\\": "source/"},
+        "functions": ["source/P/functions.php"]
+    }
+}
