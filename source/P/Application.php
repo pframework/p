@@ -34,31 +34,33 @@ class Application implements \ArrayAccess
     /** @var \SplPriorityQueue[] */
     protected $callbacks = array();
 
-    public function __construct($configuration = array())
+    /**
+      * @param array $configuration
+     */
+    public function __construct(/* configuration array or service locator instance */)
     {
-        if (is_array($configuration)) {
-            $configuration = new Configuration($configuration);
-        } elseif (!$configuration instanceof Configuration) {
+        $arg1 = func_get_arg(0);
+        if (is_array($arg1)) {
+            $configuration = new Configuration($arg1);
+            $this->bootstrapBaseServices(array('Configuration' => $configuration));
+        } elseif ($arg1 instanceof ServiceLocator) {
+            $this->bootstrapBaseServices($arg1);
+        } elseif (!$arg1 instanceof Configuration) {
             throw new \InvalidArgumentException('An array or Configuration object is required');
         }
 
-        $this->bootstrapBaseServices(array('Configuration' => $configuration));
+
     }
 
-    protected function bootstrapBaseServices(array $services)
+    protected function bootstrapBaseServices(ServiceLocator $sl)
     {
-        $sl = new ServiceLocator();
         $this->serviceLocator = $sl;
 
+        // value object, never needs to be injected, can be created
         $this->applicationState = new ApplicationState($sl);
 
-        if ($services) {
-            foreach ($services as $n => $s) {
-                $sl->set($n, $s);
-            }
-        }
-
         // router
+        $router = (!$sl->has('Router')) ? $sl->get('Router') : new Router;
         $router = new Router(new Router\RouteStack);
         $sl->set('Router', $router);
 
