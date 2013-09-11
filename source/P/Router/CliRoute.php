@@ -19,8 +19,11 @@ class CliRoute implements RouteInterface
     protected $parameterDefaults = array();
     protected $parameterValidators = array();
 
-    public function __construct($specification, array $parameterDefaults = array(), array $parameterValidators = array())
+    protected $dispatchable = null;
+
+    public function __construct($specification, $dispatchable, array $parameterDefaults = array(), array $parameterValidators = array())
     {
+        $this->dispatchable = $dispatchable;
         $this->parseSpecification($specification);
         $this->parameterDefaults = $parameterDefaults;
         $this->parameterValidators = $parameterValidators;
@@ -31,7 +34,7 @@ class CliRoute implements RouteInterface
         return $this->dispatchable;
     }
 
-    public function match($source)
+    public function match(SourceInterface $source)
     {
         if (!$source instanceof CliSource) {
             return false;

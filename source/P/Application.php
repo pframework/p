@@ -14,8 +14,8 @@ if (!function_exists('P\invoke')) {
 }
 
 /**
- * @property Dispatcher $dispatcher
  * @property Router $router
+ * @property Router\RouteStack $routes
  * @property ServiceLocator $serviceLocator
  * @property ServiceLocator $services
  */
@@ -162,12 +162,14 @@ class Application implements \ArrayAccess
                 $dispatchParams['HttpMethod'] = $routeSource['method'];
             }
             $this->applicationState->pushScope('Application.Dispatch', $dispatchParams);
-            $result = invoke($route->getDispatchable(), $this->applicationState);
+            $callable = get_callable($route->getDispatchable(), $this->applicationState);
+            $result = invoke($callable, $this->applicationState, null, false);
             $this->applicationState->setResult($result);
+            $this->applicationState->popScope();
         } catch (\Exception $e) {
+            $this->applicationState->popScope();
             return $this->trigger('Application.Error', array('type' => self::ERROR_UNDISPATCHABLE));
         }
-
         $this->trigger('Application.PostDispatch');
     }
 
@@ -300,8 +302,6 @@ class Application implements \ArrayAccess
                 return $this->serviceLocator->get('Router');
             case 'routes':
                 return $this->serviceLocator->get('Router')->getRouteStack();
-            case 'dispatcher':
-                return $this->serviceLocator->get('Dispatcher');
             default:
                 if ($this->serviceLocator->has($name)) {
                     return $this->serviceLocator->get($name);

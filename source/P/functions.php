@@ -66,11 +66,11 @@ function instantiate($instantiator, $parameters = array()) {
 
     // switch to avoid Reflection in most common use cases
     switch (count($a)) {
-        case 0: $o = new $c();
-        case 1: $o = new $c($a[0]);
-        case 2: $o = new $c($a[0], $a[1]);
-        case 3: $o = new $c($a[0], $a[1], $a[2]);
-        case 4: $o = new $c($a[0], $a[1], $a[2], $a[3]);
+        case 0: $o = new $c(); break;
+        case 1: $o = new $c($a[0]); break;
+        case 2: $o = new $c($a[0], $a[1]); break;
+        case 3: $o = new $c($a[0], $a[1], $a[2]); break;
+        case 4: $o = new $c($a[0], $a[1], $a[2], $a[3]); break;
         default:
             $r = new \ReflectionClass($c);
             $o = $r->newInstanceArgs($a);
@@ -89,13 +89,13 @@ function instantiate($instantiator, $parameters = array()) {
  */
 function get_instantiator_with_replacements($instantiator, $parameters) {
     while (preg_match('#{([^}]+)}#', $instantiator, $subMatches)) {
-        if (!isset($callTimeArguments[$subMatches[1]])) {
+        if (!isset($parameters[$subMatches[1]])) {
             throw new \RuntimeException('Cannot substitute ' . $subMatches[1]);
         }
-        if (!is_scalar($callTimeArguments[$subMatches[1]])) {
+        if (!is_scalar($parameters[$subMatches[1]])) {
             throw new \RuntimeException($subMatches[0] . ' replacement found but is not a scalar');
         }
-        $instantiator = str_replace($subMatches[0], (string) $callTimeArguments[$subMatches[1]], $instantiator);
+        $instantiator = str_replace($subMatches[0], (string) $parameters[$subMatches[1]], $instantiator);
     }
     return $instantiator;
 }
@@ -108,13 +108,13 @@ function get_instantiator_with_replacements($instantiator, $parameters) {
  * @param object Used for scope of Closure callables
  * @return \callable
  */
-function invoke($callable, $parameters, $closureScope = null) {
-    $a = get_matched_arguments($callable, $parameters);
-    if ($closureScope && $callable instanceof \Closure
-        && is_object($closureScope)
+function invoke($callable, $parameters, $closureScope = null, $allParametersRequired = true) {
+    if (is_object($closureScope)
+        && $callable instanceof \Closure
         && version_compare(PHP_VERSION, '5.4.0', '>=')) {
         $callable = $callable->bindTo($closureScope, get_class($closureScope));
     }
+    $a = get_matched_arguments($callable, $parameters, $allParametersRequired);
     switch (count($a)) {
         case 0: return $callable();
         case 1: return $callable($a[0]);
@@ -133,7 +133,7 @@ function invoke($callable, $parameters, $closureScope = null) {
  * @param object Used for scope of Closure callables
  * @return \callable
  */
-function get_matched_arguments($callable, $parameters) {
+function get_matched_arguments($callable, $parameters, $allParametersRequired = true) {
 
     if (!is_array($parameters) && !$parameters instanceof \ArrayAccess) {
         throw new \InvalidArgumentException('$arguments for ' . __CLASS__ . ' must be array or ArrayAccess');
@@ -168,8 +168,12 @@ function get_matched_arguments($callable, $parameters) {
             // use default specified by method signature
             $matchedArgs[] = $rp->getDefaultValue();
         } else {
-            // otherwise, null
-            $matchedArgs[] = null;
+            // otherwise, null || exception
+            if ($allParametersRequired) {
+                throw new \RuntimeException('Could not find a match for "' . $rp . '"');
+            } else {
+                $matchedArgs[] = null;
+            }
         }
     }
     return $matchedArgs;
