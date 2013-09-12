@@ -42,14 +42,12 @@ class Application implements \ArrayAccess
         $arg1 = func_get_arg(0);
         if (is_array($arg1)) {
             $configuration = new Configuration($arg1);
-            $this->bootstrapBaseServices(array('Configuration' => $configuration));
+            $this->bootstrapBaseServices(new ServiceLocator(array('Configuration' => $configuration)));
         } elseif ($arg1 instanceof ServiceLocator) {
             $this->bootstrapBaseServices($arg1);
         } elseif (!$arg1 instanceof Configuration) {
             throw new \InvalidArgumentException('An array or Configuration object is required');
         }
-
-
     }
 
     protected function bootstrapBaseServices(ServiceLocator $sl)
@@ -60,10 +58,7 @@ class Application implements \ArrayAccess
         $this->applicationState = new ApplicationState($sl);
 
         // router
-        $router = (!$sl->has('Router')) ? $sl->get('Router') : new Router;
-        $router = new Router(new Router\RouteStack);
-        $sl->set('Router', $router);
-
+        $router = ($sl->has('Router')) ? $sl->get('Router') : ($sl->set('Router', new Router)->get('Router'));
         $routerSource = $router->getSource();
         $sl->set('RouterSource', $routerSource);
 
@@ -95,7 +90,7 @@ class Application implements \ArrayAccess
     }
 
     /**
-     * @return void
+     * @return $this
      */
     public function initialize()
     {
