@@ -159,13 +159,18 @@ class Application implements \ArrayAccess
                 $dispatchParams['HttpMethod'] = $routeSource['method'];
             }
             $this->applicationState->pushScope('Application.Dispatch', $dispatchParams);
-            $callable = get_callable($route->getDispatchable(), $this->applicationState);
+            try {
+                $callable = get_callable($route->getDispatchable(), $this->applicationState);
+            } catch (\Exception $e) {
+                $this->applicationState->popScope();
+                return $this->trigger('Application.Error', array('type' => self::ERROR_UNDISPATCHABLE));
+            }
             $result = invoke($callable, $this->applicationState, null, false);
             $this->applicationState->setResult($result);
             $this->applicationState->popScope();
         } catch (\Exception $e) {
             $this->applicationState->popScope();
-            return $this->trigger('Application.Error', array('type' => self::ERROR_UNDISPATCHABLE));
+            return $this->trigger('Application.Error', array('type' => self::ERROR_EXCEPTION, 'exception' => $e));
         }
         $this->trigger('Application.PostDispatch');
     }

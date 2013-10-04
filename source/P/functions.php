@@ -170,7 +170,8 @@ function get_matched_arguments($callable, $parameters, $allParametersRequired = 
         } else {
             // otherwise, null || exception
             if ($allParametersRequired) {
-                throw new \RuntimeException('Could not find a match for "' . $rp . '"');
+                $subject = preg_replace('#\s+#', ' ', (string) $r);
+                throw new \RuntimeException('Could not find a match for ' . $rp . ' of ' . $subject);
             } else {
                 $matchedArgs[] = null;
             }

@@ -42,8 +42,10 @@ class BasicErrorHandler extends AbstractFeature
                 if (php_sapi_name() != 'cli') {
                     header('HTTP/1.0 500 Application Error');
                 }
-                echo 'An application error has occrued: '
-                    . $exception->getMessage() . "\n" . $exception->getTraceAsString() . PHP_EOL;
+                echo 'An application error has occurred: ';
+                if (isset($params['exception'])) {
+                    echo $params['exception']->getMessage() . "\n" . $params['exception']->getTraceAsString() . PHP_EOL;
+                }
                 break;
         }
 
