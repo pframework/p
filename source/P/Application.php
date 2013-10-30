@@ -42,7 +42,7 @@ class Application implements \ArrayAccess
         $arg1 = func_get_arg(0);
         if (is_array($arg1)) {
             $configuration = new Configuration($arg1);
-            $this->bootstrapBaseServices(new ServiceLocator(array('Configuration' => $configuration)));
+            $this->bootstrapBaseServices((new ServiceLocator())->set('Configuration', $configuration));
         } elseif ($arg1 instanceof ServiceLocator) {
             $this->bootstrapBaseServices($arg1);
         } elseif (!$arg1 instanceof Configuration) {
@@ -75,17 +75,21 @@ class Application implements \ArrayAccess
         $sl->set('ServiceLocator', $sl);
         
         // config file application configuration
-        $configuration = $sl->get('Configuration');
-        if (isset($configuration['application']) && is_array($configuration['application'])) {
-            foreach ($configuration['application'] as $n => $v) {
-                $m = null;
-                switch ($n) {
-                    case 'routes': foreach ($v as $a => $b) $this->addRoute($a, $b); break;
-                    case 'services': foreach ($v as $a => $b) $this->addService($a, $b); break;
-                    case 'features': foreach ($v as $a => $b) $this->addFeature($b); break;
-                    default: continue;
+        if ($sl->has('Configuration')) {
+            $configuration = $sl->get('Configuration');
+            if (isset($configuration['application']) && is_array($configuration['application'])) {
+                foreach ($configuration['application'] as $n => $v) {
+                    $m = null;
+                    switch ($n) {
+                        case 'routes': foreach ($v as $a => $b) $this->addRoute($a, $b); break;
+                        case 'services': foreach ($v as $a => $b) $this->addService($a, $b); break;
+                        case 'features': foreach ($v as $a => $b) $this->addFeature($b); break;
+                        default: continue;
+                    }
                 }
             }
+        } else {
+            $sl->set('Configuration', new Configuration());
         }
     }
 

@@ -33,6 +33,13 @@ function is_callish($specification) {
     return (bool) strpos($specification, '->');
 }
 
+/**
+ * is_instantiable() - does the class part of the callish thing exist?
+ * @param $specification
+ * @param null $class
+ * @param null $method
+ * @return bool
+ */
 function is_instantiable($specification, &$class = null, &$method = null) {
     if (strpos($specification, '->')) {
         list($class, $method) = preg_split('#->#', $specification, 2);        
