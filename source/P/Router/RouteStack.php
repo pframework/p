@@ -20,8 +20,11 @@ class RouteStack implements \ArrayAccess, \IteratorAggregate
         }
     }
 
-    public function addRoutes(array $routes)
+    public function addRoutes($routes)
     {
+        if (!is_array($routes) && !$routes instanceof \Traversable) {
+            throw new \InvalidArgumentException('$routes in ' . __CLASS__ . ' must be an array or Traversable');
+        }
         foreach ($routes as $name => $route) {
             $this->offsetSet($name, $route);
         }

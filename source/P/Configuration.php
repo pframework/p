@@ -12,28 +12,17 @@ namespace P;
 class Configuration implements \ArrayAccess
 {
 
-    protected $files = array();
-
-    protected $data;
+    protected $files = [];
+    protected $data = [];
 
     public function __construct(array $data = array())
     {
-        $this->data = $data;
-    }
-
-    public function addFilesWithGlob($glob, $useFilenameAsKey = true)
-    {
-        // @todo
-    }
-
-    public function processFiles()
-    {
-        // @todo
+        $this->merge($data);
     }
 
     public function merge($data, $replace = true)
     {
-        // @todo
+        $this->data = array_merge($this->data, $data);
     }
 
     public function offsetExists($offset)

@@ -35,7 +35,7 @@ abstract class AbstractFeature
 
     public function register(Application $application)
     {
-        $serviceLocator = $application->getServiceLocator();
+        $serviceLocator = $application->getServiceManager();
         
         // configuration
         $configuration = $serviceLocator->get('Configuration');

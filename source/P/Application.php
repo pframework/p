@@ -9,10 +9,6 @@
 
 namespace P;
 
-if (!function_exists('P\invoke')) {
-    include 'functions.php'; // likely should have been loaded by composer, just sayin'
-}
-
 /**
  * @property Router $router
  * @property Router\RouteStack $routes
@@ -35,18 +31,22 @@ class Application implements \ArrayAccess
     protected $callbacks = array();
 
     /**
-      * @param array $configuration
+     * @param array $configuration
      */
     public function __construct(/* configuration array or service locator instance */)
     {
-        $arg1 = func_get_arg(0);
+        $arg1 = (func_num_args() > 0) ? func_get_arg(0) : null;
+
+        $serviceLocator = ($arg1 instanceof ServiceLocator) ? $arg1 : new ServiceLocator;
+
         if (is_array($arg1)) {
-            $configuration = new Configuration($arg1);
-            $this->bootstrapBaseServices((new ServiceLocator())->set('Configuration', $configuration));
-        } elseif ($arg1 instanceof ServiceLocator) {
-            $this->bootstrapBaseServices($arg1);
-        } elseif (!$arg1 instanceof Configuration) {
-            throw new \InvalidArgumentException('An array or Configuration object is required');
+            $serviceLocator->set('Configuration', new Configuration($arg1));
+        }
+
+        $this->bootstrapBaseServices($serviceLocator);
+
+        if ($arg1 instanceof ApplicationContext) {
+            $this->registerContext($arg1);
         }
     }
 
@@ -64,10 +64,10 @@ class Application implements \ArrayAccess
 
         // register source as
         if ($routerSource instanceof Router\HttpSource) {
-            $sl->set('HttpSource', $routerSource);
+            $sl->set('HTTPSource', $routerSource);
         }
         if ($routerSource instanceof Router\CliSource) {
-            $sl->set('CliSource', $routerSource);
+            $sl->set('CLISource', $routerSource);
         }
 
         $sl->set('Application', $this);
@@ -83,7 +83,7 @@ class Application implements \ArrayAccess
                     switch ($n) {
                         case 'routes': foreach ($v as $a => $b) $this->addRoute($a, $b); break;
                         case 'services': foreach ($v as $a => $b) $this->addService($a, $b); break;
-                        case 'features': foreach ($v as $a => $b) $this->addFeature($b); break;
+                        case 'contexts': foreach ($v as $a => $b) $this->registerContext($b); break;
                         default: continue;
                     }
                 }
@@ -99,7 +99,7 @@ class Application implements \ArrayAccess
     public function initialize()
     {
         if ($this->applicationState->hasPreviousScope('Application.Initialize')) {
-            return;
+            return $this;
         }
 
         $this->trigger('Application.Initialize');
@@ -117,7 +117,7 @@ class Application implements \ArrayAccess
 
         // default error handling
         if (!isset($this->callbacks['Application.Error'])) {
-            $this->addFeature(new Feature\BasicErrorHandler);
+            $this->registerContext(new Feature\BasicErrorHandler);
         }
 
         /** @var $router Router */
@@ -156,25 +156,20 @@ class Application implements \ArrayAccess
         $this->trigger('Application.PreDispatch');
 
         try {
-            $routeSource = $router->getSource();
             $dispatchParams = $routeMatch->getParameters();
+            $routeSource = $router->getSource();
             if ($routeSource instanceof Router\HttpSource) {
                 $dispatchParams['HttpUri'] = $routeSource['uri'];
                 $dispatchParams['HttpMethod'] = $routeSource['method'];
             }
             $this->applicationState->pushScope('Application.Dispatch', $dispatchParams);
-            try {
-                $callable = get_callable($route->getDispatchable(), $this->applicationState);
-            } catch (\Exception $e) {
-                $this->applicationState->popScope();
-                return $this->trigger('Application.Error', array('type' => self::ERROR_UNDISPATCHABLE));
-            }
-            $result = invoke($callable, $this->applicationState, null, false);
+            $callable = $route->getDispatchable();
+            $result = $this->serviceLocator->invoke($callable, $this->applicationState, null, false);
             $this->applicationState->setResult($result);
-            $this->applicationState->popScope();
         } catch (\Exception $e) {
+            $this->trigger('Application.Error', array('type' => self::ERROR_EXCEPTION, 'exception' => $e));
+        } finally {
             $this->applicationState->popScope();
-            return $this->trigger('Application.Error', array('type' => self::ERROR_EXCEPTION, 'exception' => $e));
         }
         $this->trigger('Application.PostDispatch');
     }
@@ -193,10 +188,10 @@ class Application implements \ArrayAccess
         $this->applicationState->pushScope($scopeIdentifier, $parameters);
         if (!isset($this->callbacks[$scopeIdentifier])) {
             $this->applicationState->popScope();
-            return;
+            return $this;
         }
         foreach (clone $this->callbacks[$scopeIdentifier] as $callback) {
-            $result = invoke($callback, $this->applicationState);
+            $result = $this->serviceLocator->invoke($callback, $this->applicationState);
             if ($result == ApplicationState::NULLIFY_RESULT) {
                 $this->applicationState->setResult(null);
             } elseif (!is_null($result)) {
@@ -207,15 +202,39 @@ class Application implements \ArrayAccess
         return $this;
     }
 
-    public function addFeature($feature)
+    public function registerContext($context)
     {
-        if (is_string($feature)) {
-            $feature = instantiate($feature, $this->applicationState);
+        if (is_array($context)) {
+            $context = new ApplicationContext($context);
+        } elseif (!$context instanceof ApplicationContext) {
+            throw new \InvalidArgumentException('Context but be an array or P\ApplicationContext object');
         }
-        if (!$feature instanceof Feature\AbstractFeature) {
-            throw new \InvalidArgumentException('Provided feature is not a valid feature');
+
+        // configuration
+        $configuration = $this->serviceLocator->get('Configuration');
+        $configuration->merge($context->getConfiguration());
+
+        // services
+        foreach ($context->getServices() as $name => $args) {
+            if (is_object($args)) {
+                $this->serviceLocator->set($name, $args);
+            } else {
+                $this->serviceLocator->set($name, $args[0], (isset($args[1]) ? $args[1] : null));
+            }
+
         }
-        $feature->register($this);
+
+        // routes
+        $routeStack = $this->serviceLocator->get('Router')->getRouteStack();
+        foreach ($context->getRoutes() as $routeName => $route) {
+            $routeStack[$routeName] = $route;
+        }
+
+        // application callbacks
+        foreach ($context->getCallbacks() as $callback) {
+            $this->on($callback[0], $callback[1], (isset($callback[2]) ? $callback[2] : 0));
+        }
+
         return $this;
     }
 
@@ -276,7 +295,7 @@ class Application implements \ArrayAccess
     /**
      * @return ServiceLocator
      */
-    public function getServiceLocator()
+    public function getServiceManager()
     {
         return $this->serviceLocator;
     }

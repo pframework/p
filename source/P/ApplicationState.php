@@ -19,11 +19,6 @@ class ApplicationState implements \ArrayAccess
     protected $scopeParameters = array();
     protected $scopeResults = null;
 
-    /**
-     * @param array|\ArrayAccess $args1
-     * @param array|\ArrayAccess $args2
-     * @throws \InvalidArgumentException
-     */
     public function __construct(ServiceLocator $serviceLocator)
     {
         $this->serviceLocator = $serviceLocator;

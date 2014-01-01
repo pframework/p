@@ -9,9 +9,10 @@
 
 namespace P\Feature;
 
+use P\ApplicationContext;
 use P\Application;
 
-class BasicErrorHandler extends AbstractFeature
+class BasicErrorHandler extends ApplicationContext
 {
     public function getServices()
     {
