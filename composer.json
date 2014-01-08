@@ -10,6 +10,6 @@
         }
     ],
     "autoload": {
-        "psr-0": {"P\\": "source/"},
+        "psr-0": {"P\\": "source/"}
     }
 }
