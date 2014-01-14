@@ -232,7 +232,7 @@ class ServiceLocator implements \ArrayAccess, \Countable
         list($c, $m) = preg_split('#->#', $instantiator, 2);
 
         if (!class_exists($c, true)) {
-            throw new \InvalidArgumentException('Class in instantiator cannot be located');
+            throw new \InvalidArgumentException('Class in instantiator cannot be located: ' . $c);
         }
 
         if ($c == null) {
