@@ -229,7 +229,7 @@ class ServiceLocator implements \ArrayAccess, \Countable
             }
         }
 
-        list($c, $m) = preg_split('#->#', $instantiator, 2);
+        list($c, $m) = (strpos($instantiator, '->') !== false) ? preg_split('#->#', $instantiator, 2) : [$instantiator, null];
 
         if (!class_exists($c, true)) {
             throw new \InvalidArgumentException('Class in instantiator cannot be located: ' . $c);
@@ -271,6 +271,9 @@ class ServiceLocator implements \ArrayAccess, \Countable
 
         $c = ($callable instanceof \Closure && is_object($scope)) ? $callable->bindTo($scope, get_class($scope)) : $callable;
         $a = $this->matchArguments($c, $parameters);
+        if (!is_callable($c)) {
+            throw new \RuntimeException('The constructed callable is actually not callable');
+        }
         switch (count($a)) {
             case 0: return $c();
             case 1: return $c($a[0]);
@@ -301,7 +304,7 @@ class ServiceLocator implements \ArrayAccess, \Countable
             if ($r->hasMethod($method)) {
                 $rps = $r->getMethod($method)->getParameters();
             } elseif ($r->hasMethod('__call')) {
-                return array_values($parameters);
+                return array($method, $parameters);
             } else {
                 return array();
             }
@@ -309,7 +312,7 @@ class ServiceLocator implements \ArrayAccess, \Countable
             $r = new \ReflectionMethod($callable, '__invoke');
             $rps = $r->getParameters();
         } else {
-            throw new \Exception('Unknown callable');
+            throw new \Exception('Unknown callable ' . ((is_object($callable)) ? get_class($callable) : $callable));
         }
 
         $matchedArgs = array();

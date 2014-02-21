@@ -159,8 +159,8 @@ class Application implements \ArrayAccess
             $dispatchParams = $routeMatch->getParameters();
             $routeSource = $router->getSource();
             if ($routeSource instanceof Router\HttpSource) {
-                $dispatchParams['HttpUri'] = $routeSource['uri'];
-                $dispatchParams['HttpMethod'] = $routeSource['method'];
+                $dispatchParams['__HTTP_URI__'] = $routeSource['uri'];
+                $dispatchParams['__HTTP_METHOD__'] = $routeSource['method'];
             }
             $this->applicationState->pushScope('Application.Dispatch', $dispatchParams);
             $callable = $route->getDispatchable();
