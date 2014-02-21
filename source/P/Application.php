@@ -8,6 +8,7 @@
  */
 
 namespace P;
+use P\Router\RouteMatch;
 
 /**
  * @property Router $router
@@ -127,7 +128,9 @@ class Application implements \ArrayAccess
 
         try {
             $routeMatch = $router->route();
-            $this->serviceLocator->set('RouteMatch', $routeMatch, true);
+            if ($routeMatch instanceof RouteMatch) {
+                $this->serviceLocator->set('RouteMatch', $routeMatch);
+            }
         } catch (\Exception $e) {
             return $this->trigger('Application.Error', array('type' => self::ERROR_EXCEPTION, 'exception' => $e));
         }

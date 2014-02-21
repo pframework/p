@@ -38,7 +38,7 @@ class RouteStack implements \ArrayAccess, \IteratorAggregate
             if (!is_string($route[0])) {
                 throw new \InvalidArgumentException('The first parameter for a route must be a route specification string');
             }
-            if (!is_string($route[1]) && !is_callable($route[1])) {
+            if (!is_string($route[1]) && !is_callable($route[1]) && !is_null($route[1])) {
                 throw new \InvalidArgumentException('The second parameter for a route must be a string dispatchable or something callable');
             }
             if (strpos($route[0], '$') === 0) {
