@@ -31,9 +31,9 @@ class Configuration implements \ArrayAccess
         // @todo
     }
 
-    public function merge($data, $replace = true)
+    public function merge($data)
     {
-        // @todo
+        $this->data = array_merge_recursive($this->data, $data);
     }
 
     public function offsetExists($offset)

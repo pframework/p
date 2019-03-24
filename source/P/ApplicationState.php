@@ -95,9 +95,14 @@ class ApplicationState implements \ArrayAccess
                 return true;
             }
         }
-        if (isset($this->serviceLocator[$offset])) {
+
+        try {
+            $this->serviceLocator->get($offset);
             return true;
+        } catch (\Exception $e) {
+            return false;
         }
+
         return false;
     }
 
@@ -108,8 +113,10 @@ class ApplicationState implements \ArrayAccess
                 return $args[$offset];
             }
         }
-        if (isset($this->serviceLocator[$offset])) {
-            return $this->serviceLocator[$offset];
+        try {
+            return $this->serviceLocator->get($offset);
+        } catch (\Exception $e) {
+            return false;
         }
         return false;
     }

@@ -12,5 +12,8 @@
     "autoload": {
         "psr-0": {"P\\": "source/"},
         "files": ["source/P/functions.php"]
+    },
+    "require": {
+        "psr/container": "^1.0"
     }
 }

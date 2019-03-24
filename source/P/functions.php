@@ -167,10 +167,26 @@ function get_matched_arguments($callable, $parameters, $allParametersRequired = 
 
     foreach ($rps as $rp) {
         $paramName = $rp->getName();
+        $hasClass = false;
+        $paramClass = null;
+        try {
+            $paramClass = $rp->getClass();
+        } catch (\Exception $e) {
+            // Nothing to do here ¯\_(ツ)_/¯
+        }
 
-        if (isset($parameters[$paramName])) {
+        $hasClass = !is_null($paramClass);
+
+        if (($hasClass && isset($parameters[$paramClass->getName()])) || isset($parameters[$paramName])) {
+            $object = null;
+            if ($hasClass) {
+                $object = $parameters[$paramClass->getName()];
+            }
+            if (!$object) {
+                $object = $parameters[$paramName];
+            }
             // call-time arguments get priority
-            $matchedArgs[] = $parameters[$paramName];
+            $matchedArgs[] = $object;
         } elseif ($rp->isOptional()) {
             // use default specified by method signature
             $matchedArgs[] = $rp->getDefaultValue();

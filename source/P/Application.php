@@ -9,6 +9,11 @@
 
 namespace P;
 
+use P\Router;
+use P\Router\CliSource;
+use P\Router\HttpSource;
+use P\Router\RouteInterface;
+
 if (!function_exists('P\invoke')) {
     include 'functions.php'; // likely should have been loaded by composer, just sayin'
 }
@@ -58,25 +63,25 @@ class Application implements \ArrayAccess
         $this->applicationState = new ApplicationState($sl);
 
         // router
-        $router = ($sl->has('Router')) ? $sl->get('Router') : ($sl->set('Router', new Router)->get('Router'));
+        $router = ($sl->has(Router::class)) ? $sl->get(Router::class) : ($sl->set(Router::class, new Router)->get(Router::class));
         $routerSource = $router->getSource();
-        $sl->set('RouterSource', $routerSource);
+        $sl->set(RouteInterface::class, $routerSource);
 
         // register source as
         if ($routerSource instanceof Router\HttpSource) {
-            $sl->set('HttpSource', $routerSource);
+            $sl->set(HttpSource::class, $routerSource);
         }
         if ($routerSource instanceof Router\CliSource) {
-            $sl->set('CliSource', $routerSource);
+            $sl->set(CliSource::class, $routerSource);
         }
 
-        $sl->set('Application', $this);
-        $sl->set('ApplicationState', $this->applicationState);
-        $sl->set('ServiceLocator', $sl);
+        $sl->set(Application::class, $this);
+        $sl->set(ApplicationState::class, $this->applicationState);
+        $sl->set(ServiceLocator::class, $sl);
         
         // config file application configuration
-        if ($sl->has('Configuration')) {
-            $configuration = $sl->get('Configuration');
+        if ($sl->has(Configuration::class)) {
+            $configuration = $sl->get(Configuration::class);
             if (isset($configuration['application']) && is_array($configuration['application'])) {
                 foreach ($configuration['application'] as $n => $v) {
                     $m = null;
@@ -89,7 +94,7 @@ class Application implements \ArrayAccess
                 }
             }
         } else {
-            $sl->set('Configuration', new Configuration());
+            $sl->set(Configuration::class, new Configuration());
         }
     }
 
@@ -121,7 +126,7 @@ class Application implements \ArrayAccess
         }
 
         /** @var $router Router */
-        $router = $this->serviceLocator->get('Router');
+        $router = $this->serviceLocator->get(Router::class);
 
         $this->trigger('Application.PreRoute');
 
@@ -136,7 +141,7 @@ class Application implements \ArrayAccess
 
         if ($routeMatch == null) {
             /** @var $router Router */
-            $router = $this->serviceLocator->get('Router');
+            $router = $this->serviceLocator->get(Router::class);
             $routeMatch = $router->getLastRouteMatch();
 
             if (!$routeMatch) {
@@ -223,7 +228,7 @@ class Application implements \ArrayAccess
     {
         $funcArgs = func_get_args();
         $args = (is_array($nameOrRouteSpec)) ? array(null, $funcArgs[0]) : array($funcArgs[0], $funcArgs[1]);
-        $this->serviceLocator->get('Router')->getRouteStack()->offsetSet($args[0], $args[1]);
+        $this->serviceLocator->get(Router::class)->getRouteStack()->offsetSet($args[0], $args[1]);
         return $this;
     }
     
@@ -305,9 +310,9 @@ class Application implements \ArrayAccess
             case 'servicelocator':
                 return $this->serviceLocator;
             case 'router':
-                return $this->serviceLocator->get('Router');
+                return $this->serviceLocator->get(Router::class);
             case 'routes':
-                return $this->serviceLocator->get('Router')->getRouteStack();
+                return $this->serviceLocator->get(Router::class)->getRouteStack();
             default:
                 if ($this->serviceLocator->has($name)) {
                     return $this->serviceLocator->get($name);

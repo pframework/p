@@ -9,10 +9,12 @@
 
 namespace P;
 
+use Psr\Container\ContainerInterface;
+
 /**
  * P\ServiceLocator
  */
-class ServiceLocator implements \ArrayAccess, \Countable
+class ServiceLocator implements \ArrayAccess, \Countable, ContainerInterface
 {
     /** @var mixed[] */
     protected $services = array();
@@ -84,7 +86,13 @@ class ServiceLocator implements \ArrayAccess, \Countable
         static $depth = 0;
         static $allNames = array();
         if (!isset($this->services[$name])) {
-            throw new \Exception('Service by name ' . $name . ' was not located in this ServiceLocator');
+            try {
+                $object = AutoFactory::create($this, $name);
+                $this->services[$name] = $object;
+                return $this->services[$name];
+            } catch (\RuntimeException $e) {
+                throw new \Exception('Could not create object named ' . $name);
+            }
         }
         if ($depth > 99) {
             throw new \RuntimeException(

@@ -9,7 +9,9 @@
 
 namespace P\Feature;
 
+use P\Router;
 use P\Application;
+use P\Configuration;
 
 abstract class AbstractFeature
 {
@@ -38,7 +40,7 @@ abstract class AbstractFeature
         $serviceLocator = $application->getServiceLocator();
         
         // configuration
-        $configuration = $serviceLocator->get('Configuration');
+        $configuration = $serviceLocator->get(Configuration::class);
         $configuration->merge($this->getConfiguration());
         
         // services
@@ -47,7 +49,7 @@ abstract class AbstractFeature
         }
         
         // routes
-        $routeStack = $serviceLocator->get('Router')->getRouteStack();
+        $routeStack = $serviceLocator->get(Router::class)->getRouteStack();
         foreach ($this->getRoutes() as $routeName => $route) {
             $routeStack[$routeName] = $route;
         }
